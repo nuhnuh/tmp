@@ -1,0 +1,57 @@
+# Ubuntu 2020
+# TIP: sudo reports errors but works (errors dissapear after apt upgrade/dist-upgrade, not sure if both)
+
+FROM ubuntu:20.04
+#FROM nvidia/opengl:1.0-glvnd-runtime-ubuntu20.04
+
+ARG USER=ubuntu20
+ARG HOME=/home/${USER}
+# TIP: UID=$(id --user)
+ARG UID=1000
+
+# create USER and enable sudo
+RUN apt update \
+    && apt install -y sudo \
+    && rm -rf /var/lib/apt/lists/*
+RUN useradd --uid ${UID} --create-home --shell /bin/bash ${USER} \
+    && echo "${USER} ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/${USER} \
+    && chmod 0440 /etc/sudoers.d/${USER} \
+    && adduser ${USER} sudo
+
+##
+#RUN sudo apt-get update
+#RUN apt-get upgrade -y
+#RUN apt-get dist-upgrade -y
+
+# tmux
+RUN apt update \
+    && apt install -y tmux \
+    && rm -rf /var/lib/apt/lists/*
+
+
+# install support for additional sources list
+# light-weight alternative
+RUN apt update \
+    && apt install -y \
+        curl \
+        gnupg2 \
+        lsb-release \
+    && rm -rf /var/lib/apt/lists/*
+## heavy-weight alternative
+#RUN apt update && apt install -y gnupg2 software-properties-common && rm -rf /var/lib/apt/lists/*
+
+# install basalt
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 0D97B6C9 \
+    && sh -c 'echo "deb [arch=amd64] http://packages.usenko.eu/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/basalt.list' \
+    && apt update \
+    && DEBIAN_FRONTEND=noninteractive apt install -y basalt
+
+# basalt dependencies
+# sudo apt install libv4l-dev
+
+#
+USER ${USER}
+ENV HOME ${HOME}
+WORKDIR ${HOME}
+CMD /bin/bash
+
