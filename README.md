@@ -31,3 +31,10 @@ and run docker with `--gpus all`
     rostopic pub -r 10 /cmd_vel \
       geometry_msgs/Twist '{linear: [ .5, 0, 0 ], angular: [0, 0, .3]}'
 
+    # Teleoperation (keyboard)
+    make docker_connect
+    source devel/setup.bash
+    roslaunch tecna_turtle_teleop keyboard.launch
+
+
+

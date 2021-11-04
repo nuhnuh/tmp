@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="tecna_turtle_teleop" type="keyboard_teleop.py" name="tecna_turtle_teleop_keyboard"  output="screen">
+    <param name="max_speed" value="2.0"/>
+    <param name="max_angular_speed" value="0.7"/>
+    <param name="topic" value="/cmd_vel"/>
+    <param name="frame" value="base_link"/>
+  </node>
+</launch>
