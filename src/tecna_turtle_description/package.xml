@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="2">
+
+  <name>tecna_turtle_description</name>
+  <version>0.0.0</version>
+  <description>The tecna_turtle_description package</description>
+  <maintainer email="manuel.prieto@unavarra.es">Manu</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>urdf</depend>
+  <depend>xacro</depend>
+
+</package>

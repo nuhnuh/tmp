@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="gui"    default="true"/>
+  <arg name="paused" default="false"/>
+  <arg name="world_file" default="$(find tecna_turtle_gazebo)/worlds/empty.world"/>
+
+  <arg name="x0"   default="0"/>
+  <arg name="y0"   default="0"/>
+  <arg name="z0"   default=".5"/>
+  <arg name="yaw0" default="0"/>
+
+  <include file="$(find tecna_turtle_gazebo)/launch/spawn_world.launch">
+    <arg name="gui"        value="$(arg gui)" />
+    <arg name="paused"     value="$(arg paused)"/>
+    <arg name="world_file" value="$(arg world_file)"/>
+  </include>
+
+  <include file="$(find tecna_turtle_gazebo)/launch/spawn_robot.launch">
+    <arg name="agent" value="tecnabot"/>
+    <arg name="x0"   value="$(arg x0)"/>
+    <arg name="y0"   value="$(arg y0)"/>
+    <arg name="z0"   value="$(arg z0)"/>
+    <arg name="yaw0" value="$(arg yaw0)"/>
+  </include>
+
+</launch>

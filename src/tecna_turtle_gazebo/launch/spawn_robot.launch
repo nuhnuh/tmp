@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="agent" default="tecnabot"/>
+  <arg name="cmd_timeout" default="0.5"/>
+
+  <arg name="x0" default="0"/>
+  <arg name="y0" default="0"/>
+  <arg name="z0" default="2"/>
+  <arg name="roll0"  default="0"/>
+  <arg name="pitch0" default="0"/>
+  <arg name="yaw0"   default="0"/>
+
+  <param name="robot_description" command="$(find xacro)/xacro $(find tecna_turtle_description)/urdf/robot.urdf.xacro" />
+
+  <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf"
+    args="-urdf
+      -param robot_description
+      -model $(arg agent)
+      -x $(arg x0) -y $(arg y0) -z $(arg z0) -R $(arg roll0) -P $(arg pitch0) -Y $(arg yaw0)"/>
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="30.0" />
+  </node>
+
+</launch>

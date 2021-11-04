@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="2">
+
+  <name>tecna_turtle_gazebo</name>
+  <version>0.0.0</version>
+  <description>Gazebo simulation package for tecna_turtle</description>
+  <maintainer email="manuel.prieto@unavarra.es">Manu</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>gazebo_ros</depend>
+
+  <export>
+    <gazebo_ros gazebo_media_path="${prefix}" gazebo_model_path="${prefix}/models"/>
+  </export>
+
+</package>
