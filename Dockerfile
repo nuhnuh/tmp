@@ -29,13 +29,21 @@ RUN apt update \
     && rm -rf /var/lib/apt/lists/*
 RUN echo "source /opt/ros/melodic/setup.bash" >> ${HOME}/.bashrc
 
-# navigation dependencies
+# localization dependencies
 RUN apt update \
     && DEBIAN_FRONTEND=noninteractive apt install -y \
         ros-melodic-map-server \
         ros-melodic-amcl \
         ros-melodic-gmapping \
     && rm -rf /var/lib/apt/lists/*
+
+# pursuit path tracking dependencies
+RUN apt update \
+    && DEBIAN_FRONTEND=noninteractive apt install -y \
+        python-pip \
+    && rm -rf /var/lib/apt/lists/*
+USER ${USER}
+RUN pip install scipy
 
 #
 USER ${USER}

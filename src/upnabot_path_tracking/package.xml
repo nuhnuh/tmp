@@ -1,0 +1,26 @@
+<package>
+  <name>upnabot_path_tracking</name>
+  <version>0.0.0</version>
+  <description>
+    upnabot_path_tracking is a package that....
+  </description>
+  <author>Manuel Prieto</author>
+  <maintainer email="manuel.prieto@unavarra.es">Manuel Prieto</maintainer>
+  <license>BSD</license>
+  <url type="repository">https://github.com/nuhnuh/kobuki_ws/src/upnabot/upnabot_path_tracking</url>  
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>dynamic_reconfigure</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>visualization_msgs</build_depend>
+  <build_depend>path_tracking</build_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>dynamic_reconfigure</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>visualization_msgs</run_depend>
+  <run_depend>path_tracking</run_depend>
+</package>

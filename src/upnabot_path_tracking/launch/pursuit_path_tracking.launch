@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<!-- Summary: path tracking on tecna_tricycle -->
+<launch>
+
+  <!-- input arguments -->
+  <!--  -->
+  <!--<arg name="path_frame" default="map" doc="[map, odom]"/>-->
+  <arg name="v_max" default="0.5"/>
+  <arg name="a_max" default="0.2"/>
+  <arg name="jerk"  default="0.2"/>
+  <arg name="pursuit_distance" default="1.0"/>
+
+
+  <!-- optional
+  <include file="$(find tecna_tricycle_navigation)/launch/includes/move_base.launch.xml">
+    <arg name="laser_topic" value="/rs_d435/scan"/>
+  </include>
+-->
+
+  <!-- path tracking -->
+  <!-- path tracking server -->
+  <node name="path_tracking" pkg="upnabot_path_tracking" type="pursuit_path_tracking_server.py" output="screen">
+    <param name="odom_frame" value="odom"/>
+    <!-- TIP: path_tracking.yaml was obtained through:                                           -->
+    <!--   rosparam dump src/upnabot/upnabot_path_tracking/param/path_tracking.yaml path_tracking -->
+    <rosparam file="$(find upnabot_path_tracking)/param/path_tracking.yaml" command="load"/>
+    <remap from="cmd_vel" to="cmd_vel"/>
+    <!-- debug -->
+    <param name="pursuit_distance" value="$(arg pursuit_distance)"/>
+    <param name="v_max" value="$(arg v_max)"/>
+    <param name="a_max" value="$(arg a_max)"/>
+    <param name="jerk" value="$(arg jerk)"/>
+  </node>
+
+
+<!--
+-->
+
+<!--
+  <node name="tecna_tricycle_path_tracking_client" pkg="tecna_tricycle_path_tracking" type="path_tracking_client.py" output="screen">
+    <param name="path_fn" value="/tmp/path_1.npz"/>
+    <param name="reverse" value="True"/>
+    <param name="frame_id" value="$(arg path_frame)"/>
+    <remap from="cmd_vel" to="/agent1/cmd_vel"/>
+  </node>
+-->
+
+
+
+  <!-- debug -->
+  <!-- <node name="rqt_reconfigure_name" pkg="rqt_reconfigure" type="rqt_reconfigure"/> -->
+  <!-- <node name="rqt_tf_tree_name"     pkg="rqt_tf_tree"     type="rqt_tf_tree"/> -->
+
+
+  <!-- works: -->
+  <!-- <node      pkg="rostopic" type="rostopic" name="prueba" args="pub -r 10 /cmd_vel_mux/input/teleop geometry_msgs/Twist '{linear: [ 0, 0, 0 ], angular: [0, 0, 1]}'" /> -->
+  <!-- do not works: -->
+<!--
+  <node pkg="rostopic" type="rostopic" name="amcl_initialization" output="screen" args="
+pub -r 1 /initialpose geometry_msgs/PoseWithCovarianceStamped 'header:
+    seq: 0
+    stamp:
+      secs: 0
+      nsecs: 0
+    frame_id: 'map'
+  pose:
+    pose:
+      position: {x: 0.0, y: 0.0, z: 0.0}
+      orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
+    covariance: [
+      .5,  0,  0, 0, 0,  0,
+       0, .5,  0, 0, 0,  0,
+       0,  0,  0, 0, 0,  0,
+       0,  0,  0, 0, 0,  0,
+       0,  0,  0, 0, 0,  0,
+       0,  0,  0, 0, 0, 30]'"/>
+-->
+
+</launch>

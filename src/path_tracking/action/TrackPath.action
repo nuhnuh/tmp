@@ -1,0 +1,12 @@
+#goal definition
+string frame_id
+bool reverse
+#geometry_msgs/Pose[] poses
+float32[] path_x
+float32[] path_y
+---
+#result definition
+float32 dist2goal
+---
+#feedback
+float32 dist2goal

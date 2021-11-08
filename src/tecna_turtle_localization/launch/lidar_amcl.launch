@@ -3,7 +3,7 @@
 
   <!-- map -->
 
-  <arg name="map_file" default="$(find tecna_turtle_navigation)/maps/simple_world.yaml"/>
+  <arg name="map_file" default="$(find tecna_turtle_localization)/maps/simple_world.yaml"/>
 
   <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)"/>
 
