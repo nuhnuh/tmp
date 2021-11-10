@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="plc_ip" default="XXXXXXX"/>
+  <arg name="plc_port" default="XXXXXXX"/>
+  <arg name="lidar_ip" default="10.0.0.1"/>
+  <arg name="track_width" default="0.8"/>
+  <arg name="wheel_radius" default="0.171"/>
+
+  <param name="robot_description" command="$(find xacro)/xacro $(find tecna_turtle_description)/urdf/robot.urdf.xacro"/>
+
+  <!--
+    Uses the URDF specified by the parameter robot_description and the joint positions from the topic joint_states to calculate the forward kinematics of the robot and publish the results via tf.
+
+    http://wiki.ros.org/robot_state_publisher
+  -->
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="50.0"/>
+  </node>
+
+
+
+  <!-- ROS-PLC communication
+    PLC to ROS:
+      /wheel_vel_odom (wheel velocities measured)
+      /path_tracking/trajectory_id
+      /path_tracking/status (with what objective? ignore?)
+    ROS to PLC:
+      /wheel_vel_cmd (wheel velocities commanded)
+      /path_tracking/current_pose
+      /path_tracking/status
+  -->
+  <node pkg="tecna_turtle_bringup" type="tecna_turtle_plc.py" name="plc_bridge">
+    <param name="plc_ip" value="$(arg plc_ip)" />
+    <param name="plc_port" value="$(arg plc_port)"/>
+  </node>
+
+  <!-- diff_drive_controller (generates /wheel_vel_cmd messages from /cmd_vel) -->
+  <node pkg="tecna_turtle_bringup" type="diff_drive_controller.py" name="diff_drive_controller">
+    <param name="track_width" value="$(arg track_width)"/>
+    <param name="wheel_radius" value="$(arg wheel_radius)"/>
+  </node>
+
+  <!-- odometry (generates odometry messages and tf from /wheel_vel_odom) -->
+  <node pkg="tecna_turtle_bringup" type="diff_drive_odometry.py" name="odometry">
+    <param name="track_width" value="$(arg track_width)"/>
+    <param name="wheel_radius" value="$(arg wheel_radius)"/>
+  </node>
+
+
+
+  <!-- lidar (pepperl fuchs r2000) -->
+  <node pkg="pepperl_fuchs_r2000" type="r2000_node" name="lidar">
+    <param name="lidar_ip" value="$(arg lidar_ip)"/>
+    <param name="frame_id" value="lidar"/>
+    <param name="scan_frequency" value="50"/>
+    <param name="samples_per_scan" value="720"/>
+    <param name="hmi_static_text_1" value="XXX"/>
+<!--
+    <remap from="/lidar/scan" to="scan"/>
+-->    
+  </node>
+
+</launch>

@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package>
+
+  <name>tecna_turtle_msgs</name>
+  <description>tecna_turtle messages</description>
+  <version>0.0.0</version>
+  <author email="manuel.prieto@unavarra.es">Manuel Prieto</author>
+  <maintainer email="manuel.prieto@unavarra.es">manu</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>message_generation</build_depend>
+
+</package>
