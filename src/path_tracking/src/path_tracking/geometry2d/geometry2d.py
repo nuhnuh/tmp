@@ -191,7 +191,8 @@ class PathUtils:
         t = np.linspace(0, 2*np.pi, npoints, endpoint=False)
         x = radious * np.cos(t)
         y = radious * np.sin(t)
-        path = LinearPWPath(x,y)
+        v = 1.0
+        path = LinearPWPath(x, y, v)
         return path
 
     @staticmethod
@@ -199,7 +200,8 @@ class PathUtils:
         t = np.linspace(0, 2*np.pi, npoints, endpoint=False)
         x = 1.0 * np.sin(1.0*t)
         y = 0.4 * np.sin(2.0*t)
-        path = LinearPWPath(scale*x, scale*y)
+        v = 1.0
+        path = LinearPWPath(scale*x, scale*y, v)
         return path
 
     @staticmethod
@@ -207,7 +209,8 @@ class PathUtils:
         t = np.linspace(0, 2*np.pi, npoints, endpoint=False)
         x = 16 * np.sin(t)**3
         y = 13 * np.cos(t) - 5 * np.cos(2*t) - 2 * np.cos(3*t) - np.cos(4*t)
-        path = LinearPWPath(scale*x/16., scale*y/16.)
+        v = 1.0
+        path = LinearPWPath(scale*x/16., scale*y/16., v)
         return path
 
     @staticmethod
@@ -220,7 +223,8 @@ class PathUtils:
             x.append(x_)
             y.append(y_)
         x, y = np.array(x)[::-1], np.array(y)[::-1]
-        path = LinearPWPath(x,y)
+        v = 1.0
+        path = LinearPWPath(x, y, v)
         return path
 
     @staticmethod
@@ -229,7 +233,8 @@ class PathUtils:
         t = numpy.linspace(0,1,npoints)
         x = x0 + radious * np.cos(np.deg2rad( theta0 + (theta1-theta0)*t ))
         y = y0 + radious * np.sin(np.deg2rad( theta0 + (theta1-theta0)*t ))
-        path = LinearPWPath(x,y)
+        v = 1.0
+        path = LinearPWPath(x, y, v)
         return path
 
     @staticmethod
@@ -263,7 +268,8 @@ class PathUtils:
             x_smooth[idx], y_smooth[idx] = rotate( (0,0), (x_smooth[idx], y_smooth[idx]), rot )
             x_smooth[idx], y_smooth[idx] = x_smooth[idx] + x0, y_smooth[idx] + y0
 
-        path = LinearPWPath(x_smooth, y_smooth)
+        v = 1.0
+        path = LinearPWPath(x_smooth, y_smooth, v)
         return path
 
     ###########################################################################
@@ -273,34 +279,39 @@ class PathUtils:
     def scale(path, scale_x, scale_y):
         x = scale_x * path.x
         y = scale_y * path.y
-        path = LinearPWPath(x,y)
+        v = path.v
+        path = LinearPWPath(x, y, v)
         return path
 
     @staticmethod
     def move(path, x0, y0):
         x = x0 + path.x
         y = y0 + path.y
-        path = LinearPWPath(x,y)
+        v = path.v
+        path = LinearPWPath(x, y, v)
         return path
 
     @staticmethod
     def rotate(path, ccw_angle):
         x = np.cos(ccw_angle) * path.x - np.sin(ccw_angle) * path.y
         y = np.sin(ccw_angle) * path.x + np.cos(ccw_angle) * path.y
-        path = LinearPWPath(x,y)
+        v = path.v
+        path = LinearPWPath(x, y, v)
         return path
 
     @staticmethod
     def invert_direction(path):
         x = path.x[::-1]
         y = path.y[::-1]
-        path = LinearPWPath(x,y)
+        v = path.v
+        path = LinearPWPath(x, y, v)
         return path
 
     @staticmethod
     def cyclic_workaround(path):
         xi, yi = path.x[0], path.y[0]
         x, y = path.x, path.y
+        v = path.v
         #
         x1 = xi + 0.01*(x[+1]-xi)
         y1 = yi + 0.01*(y[+1]-yi)
@@ -314,7 +325,7 @@ class PathUtils:
         #
         x = np.hstack(([x0, x1], x[1:], [x2n, x1n]))
         y = np.hstack(([y0, y1], y[1:], [y2n, y1n]))
-        path = LinearPWPath( x, y )
+        path = LinearPWPath(x, y, v)
         return path
 
 
@@ -351,16 +362,19 @@ class CircularPath:
 
 class LinearPWPath:
     """
-    Linear piece-wise 2D path
-    Asumes ENU frame convention (east, north, up). Positive angles are CCW
+    Linear piece-wise 2D path. Each segment has an associated maximum velocity
     """
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, v):
         """ """
 
-        assert len(x)==len(y)
+        if isinstance(v, (list, np.ndarray)) is False:
+            v = v * np.ones(len(v))
+
+        assert len(x)==len(y)==len(v), "WTF? (x, y and v must have the same lenght)"
         self.x = x
         self.y = y
+        self.v = v
 
         # create kdtree for fast nearest waypoint search
         X = np.vstack((x,y)).T
@@ -394,14 +408,14 @@ class LinearPWPath:
 
 
     def save(self, fn):
-        np.savez(file=fn, x=self.x, y=self.y)
+        np.savez(file=fn, x=self.x, y=self.y, v=self.v)
 
 
     @staticmethod
     def load(fn):
         data = np.load(fn)
-        x, y = data['x'], data['y']
-        return LinearPWPath(x,y)
+        x, y, v = data['x'], data['y'], data['v']
+        return LinearPWPath(x,y,v)
 
 
     def _subpath_length(self, idx0, idx1):
@@ -633,6 +647,35 @@ class LinearPWPath:
         return ppoint, path_dir, icr
 
 
+    def velocity_at(self, point):
+        """
+        Returns the max velocity at a given point.
+        """
+
+        x = self.x
+        y = self.y
+        v = self.v
+
+        segment_idx = self.nearest_segment(point)
+        if segment_idx < 0: # point is behind the first path segment
+            return v[0]
+        if segment_idx > len(x)-2: # point is ahead the last path segment
+            return v[-1]
+
+        x1 = x[segment_idx+0]
+        y1 = y[segment_idx+0]
+        v1 = v[segment_idx+0]
+        x2 = x[segment_idx+1]
+        y2 = y[segment_idx+1]
+        v2 = v[segment_idx+1]
+        p1 = Point(x1, y1)
+        p2 = Point(x2, y2)
+        d1 = point.distance(p1)
+        d2 = point.distance(p2)
+        v = (d2 * v1 + d1 * v2) / (d1 + d2)
+        return v
+
+
     def subpath_length(self, point1, point2):
         """
         Calculates the distance along the path
@@ -714,23 +757,6 @@ class LinearPWPath:
     #     return pursuit_point
 
 
-class CubicPWPath:
-    """
-    Cubic piece-wise 2D path
-    Asumes ENU frame convention (east, north, up). Positive angles are CCW
-    """
-
-    def __init__(self, x, y, heading):
-        assert len(x)==len(y)==len(heading)
-        self.x = x
-        self.y = y
-        self.heading = heading
-
-    def __repr__(self):
-        #return 'Line(point=' + str(self.point) + ', vector=' + str(self.vector) + ')'
-        raise 'TODO'
-
-
 
 ################################################################################
 # Demos
@@ -747,12 +773,13 @@ def _create_path(demo_name):
         path = PathUtils.create_quore_path(npoints=16)
     elif demo_name == 'lemnicaste_path':
         path = PathUtils.create_lemniscate_path(npoints=16)
-        path = LinearPWPath( path.x[1:], path.y[1:] )
+        path = LinearPWPath( path.x[1:], path.y[1:], path.v )
     else:
         x = [  1,  2,  2,  1,  1,  2,  1, -1, -2, -1, -1, -2, -2, -1 ]
         y = [ -2, -2, -1, -1,  0,  1,  2,  2,  1,  0, -1, -1, -2, -2 ]
         x, y = np.array(x).astype('float'), np.array(y).astype('float')
-        path = LinearPWPath( x, y )
+        v = 1.0
+        path = LinearPWPath( x, y, v )
     return path
 
 
@@ -760,7 +787,7 @@ def _create_path(demo_name):
 def _demo_normal_at_path_waypoint():
 
     path = PathUtils.create_lemniscate_path(npoints=18)
-    path = LinearPWPath( path.x[1:], path.y[1:] )
+    path = LinearPWPath( path.x[1:], path.y[1:], path.v )
     #
     path = PathUtils.invert_direction( path )
     path = PathUtils.scale( path, 2, 2 )

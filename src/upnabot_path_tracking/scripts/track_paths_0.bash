@@ -29,12 +29,14 @@ python <<-EOF
 		
 		# define path specs
 		npoints = 10
-		x = np.linspace(-1.0, +1.0, npoints)
+		x = np.linspace(   0, +4.0, npoints)
 		y = np.linspace(   0,    0, npoints)
+		v = np.linspace(  .6,   .1, npoints) + .0
+		v[:len(v)//2] = v[0]
 		
 		# create the paths
 		# path 1
-		path1 = LinearPWPath(x,y)
+		path1 = LinearPWPath(x,y,v)
 		# path 2
 		path2 = PathUtils.invert_direction(path1)
 		

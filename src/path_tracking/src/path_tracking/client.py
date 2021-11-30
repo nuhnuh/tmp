@@ -47,7 +47,7 @@ class Client:
         rospy.loginfo('-----------------------..waiting for server')
 
         # Creates a goal to send to the action server
-        goal = path_tracking.msg.TrackPathGoal(frame_id=frame_id, path_x=path.x, path_y=path.y, reverse=reverse)
+        goal = path_tracking.msg.TrackPathGoal(frame_id=frame_id, path_x=path.x, path_y=path.y, path_v=path.v, reverse=reverse)
 
         # Sends the goal to the action server.
         def done_cb(status, result):
@@ -59,6 +59,7 @@ class Client:
             print("    (See: http://docs.ros.org/kinetic/api/actionlib_msgs/html/msg/GoalStatus.html)")
             if status == GoalStatus.SUCCEEDED:
                 print("  result:", result)
+                print("  status:", status)
         def feedback_cb(feedback):
             print("feedback_cb", feedback)
         def active_cb():

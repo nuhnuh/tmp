@@ -24,44 +24,6 @@ import path_tracking
 
 
 
-# TODO: this function should be moved to path_tracking/kinematics.py
-def v_braking(v_max, a_max, jerk):
-    """
-    The function returns a function that takes a distance to goal as input
-    and returns a velocity (a velocity that allows stopping at the goal 
-    satisfying v_max, a_max and jerk
-    """
-
-    solution = path_tracking.kinematics.plan_velocity_change( a_max=a_max, jerk=jerk, v_0=0, v_g=v_max, a_0=0, a_g=0, debug=False )
-    (dt1, dt2, dt3), (dx1, dx2, dx3), (v1, v2), jerks, velocity_change_distance = solution
-
-    def v(t):
-        if t <= dt1:
-            v_ = jerk * t**2 / 2.
-        elif t <= dt1+dt2:
-            v_ = v1 + a_max * (t - dt1)
-        else: #
-            v_ = v_max - jerk * (dt1+dt2+dt3 - t)**2 / 2.
-        return v_
-    def x(t):
-        if t <= dt1:
-            x_ = jerk * t**3 / 6.
-        elif t <= dt1+dt2:
-            x_ = dx1 + v1 * (t - dt1) + a_max/2. * (t - dt1)**2
-        else: #
-            x_ = (dx1+dx2+dx3) - v_max * (dt1+dt2+dt3-t) + jerk * (dt1+dt2+dt3-t)**3 / 6.
-        return x_
-
-    t  = np.linspace(  0, dt1+dt2+dt3, 100)
-    v = [ v(t_) for t_ in t ]
-    x = [ x(t_) for t_ in t ]
-
-    from scipy import interpolate
-    v_braking = interpolate.interp1d( x, v )
-    return v_braking # v_braking(x)
-
-
-
 class PursuitPathTrackerServer(path_tracking.Server):
 
 
@@ -76,14 +38,15 @@ class PursuitPathTrackerServer(path_tracking.Server):
         def _config_cb(config, level):
             print('config updated :)', level)
             print(config)
+
             self._config = config
-            # recalculate breaking distance
+
+            # dbg: recalculate breaking distance
             v_max = self._config['v_max']
             a_max = self._config['a_max']
-            jerk  = self._config['jerk']
             _, velocity_change_distance = path_tracking.kinematics.plan_velocity_change_1dof( a_max=a_max, v_0=v_max, v_g=0 )
             print('velocity_change_distance:', velocity_change_distance)
-            #
+
             return config
         import dynamic_reconfigure.server
         from upnabot_path_tracking.cfg import PursuitPathTrackingConfig
@@ -98,16 +61,17 @@ class PursuitPathTrackerServer(path_tracking.Server):
     def _cmd_loop_iter(self, t_now, dt):
 
         # using config as a local reference avoids concurrency problems caused by the config_cb
+        # TODO: not used!!
         config = self._config
         if not config:
             rospy.logwarn('dynamic config no ready yet => ignoring odom_cb')
-            assert False # is this block neccesary?
+            assert False # is this block neccesary? It seems that it does not..
             return
 
         # using path as a local reference avoids concurrency problems with execute_cb()
         path = self._path
         if path is None: # not tracking any path currently
-            # command robot stopped
+            # command robot to stop
             twist = geometry_msgs.msg.Twist()
             #twist.linear.x = velocity
             #twist.angular.z = angular_vel
@@ -117,10 +81,8 @@ class PursuitPathTrackerServer(path_tracking.Server):
         path_frame = self._path_frame # concurrency problems?
         reverse    = self._reverse    # concurrency problems?
 
-        # transform robot pose (in odom frame) to path frame coords
-        #to_frame = path_frame
-        #from_frame = 'base_link'
-        from_frame = path_frame  # TODO: TIP: it seems that from and to are just the opposite
+        # calculate robot pose in path frame coords system
+        from_frame = path_frame
         to_frame = 'base_link'
         try:
             #robot_position, robot_orientation = self._tf_listener.lookupTransform(from_frame, to_frame, rospy.Time()) # last common tf
@@ -140,12 +102,9 @@ class PursuitPathTrackerServer(path_tracking.Server):
             rospy.logwarn('could not lookuptf from %s frame to %s frame (EE)' % (from_frame, to_frame))
             # TODO: take security actions
             return
-        #
+        # robot pose (in 2D coords)
         robot_position = Point( robot_position[0], robot_position[1] )
-        #
-        q = robot_orientation
-        #q = ( q.x, q.y, q.z, q.w )
-        robot_heading = tf_conversions.transformations.euler_from_quaternion(q)[2]
+        robot_heading = tf_conversions.transformations.euler_from_quaternion(robot_orientation)[2]
         robot_heading_vec = Vector( math.cos(robot_heading), math.sin(robot_heading) )
 
         # pure-pursuit
@@ -159,6 +118,7 @@ class PursuitPathTrackerServer(path_tracking.Server):
 
         #
         dist2goal = path.distance_to_goal(robot_position)
+        self._dist2goal = dist2goal  # used to send feedback to the action server client
 
         # dbg: visualize pursuit_point
         # publish pursuit_point frame
@@ -217,66 +177,35 @@ class PursuitPathTrackerServer(path_tracking.Server):
         self._pub_cte.publish(std_msgs.msg.Float32(cte))
 
         # velocity control
-        v_max = self._config['v_max']
+        v_max = path.velocity_at(robot_position)
         a_max = self._config['a_max']
-        jerk  = self._config['jerk']
 
         #
         if self._tracking_done is None: # tracking not started
             self._tracking_done = False # set tracking to in-progress
-            #
-
-            # Estimate the distance required to speed up from 0 to v_max and,
-            # if such distance is greater than half the distance to goal,
-            # iteratively reduce v_max until the condition is satisfied
-            #
-            while True:
-                solution = path_tracking.kinematics.plan_velocity_change( a_max=a_max, jerk=jerk, v_0=0, v_g=v_max, a_0=0, a_g=0, debug=False )
-                (dt1, dt2, dt3), (dx1, dx2, dx3), (v1, v2), jerks, velocity_change_distance = solution
-                velocity_change_distance = dx1 + dx2 + dx3
-                print('d2g=%f, velocity_change_distance=%f, v_max=%f' % (dist2goal, velocity_change_distance, v_max))
-                if 2 * velocity_change_distance <= dist2goal:
-                    break
-                else:
-                    v_max = 0.7 * v_max
-            self._v_max = v_max
-
-            #
-            self._brake_distance = velocity_change_distance # when distance to goal is smaller than _brake_distance velocity starts slowing down
-            self._max_vel_at_max_acc = v2 # when this velocity is reached acceleration starts slowing down
-            self._acceleration = 0 # current acceleration
-            self._velocity = 0.    # current velocity
-            self._v_braking = v_braking(v_max, a_max, jerk)
-            #
-        else:
-            v_max = self._v_max
-
+            self._velocity = 0  # current velocity
 
         # speed control
-        if dist2goal <= self._brake_distance:
-            # arriving to goal => deceleration phase
-            a = 0 # not used in this phase
-            velocity = self._v_braking( dist2goal )
-            velocity = min( velocity, self._velocity )
-        else:
-            # far from goal => speed up to achieve target velocity (v_max)
-            a = self._acceleration
-            if self._velocity >= self._max_vel_at_max_acc:
-                a -= jerk * dt
-                a = max( a, 0 )
-            elif a <= a_max:
-                a += jerk * dt
-                a = min( a, a_max )
-            velocity = self._velocity + a * dt
-            velocity = min( velocity, v_max )
-        # goal reached?
-        if dist2goal <= 0 or self._tracking_done is True: # latch to goal
+        # speed up
+        velocity = self._velocity
+        if velocity < v_max:
+            velocity += a_max * dt
+            velocity = min(v_max, velocity)
+        # slow down
+        if velocity > v_max:
+            velocity -= a_max * dt
+            if velocity < v_max:
+                velocity = v_max
+        # start breaking for goal?
+        v = path_tracking.kinematics.calc_vel_from_d2g_1dof(dist2goal, a_max)
+        if v <= velocity:  # start breaking for goal?
+            velocity = v
+        # goal reached? => latch to goal
+        if dist2goal <= 0:
             velocity = 0
-            if self._tracking_done is False:
-                self._tracking_done = True
+            self._tracking_done = True
         #
         self._velocity = velocity
-        self._acceleration = a
 
         # calculate the angular velocity required to follow the path
         # two angular velocities will be calculated
