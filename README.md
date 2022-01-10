@@ -36,5 +36,26 @@ and run docker with `--gpus all`
     source devel/setup.bash
     roslaunch tecna_turtle_teleop keyboard.launch
 
+-------
+
+# In progress
+
+    make docker_run
+
+    # modbus server (plc mock)
+    make docker_connect
+    mkdir /WD/tmp
+    git clone https://github.com/riptideio/pymodbus
+    sudo apt install python-pymodbus
+    cd /WD/tmp/pymodbus
+    PYTHONPATH=. python examples/common/synchronous_server.py
+
+    roscore
+
+    # plc communication
+    make docker_connect
+    source devel/setup.bash
+    rosrun tecna_turtle_bringup plc.py _ip:=127.0.0.1 _port:=5020 _track_width:=1 _wheel_radius:=.1
+    # TIP (kill plc.py): ps axu | grep plc | head -n1 | awk '{print $2}' | xargs kill -9
 
 
