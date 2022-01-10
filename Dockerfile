@@ -44,6 +44,13 @@ RUN apt update \
     && rm -rf /var/lib/apt/lists/*
 USER ${USER}
 RUN pip install scipy
+USER root
+
+# plc dependencies
+RUN apt update \
+    && DEBIAN_FRONTEND=noninteractive apt install -y \
+        python-pymodbus \
+    && rm -rf /var/lib/apt/lists/*
 
 #
 USER ${USER}

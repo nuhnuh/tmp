@@ -9,6 +9,7 @@ from threading import Lock
 
 import rospy
 import tf # TODO: use tf2 instead! (see /home/manu/Manu/Jobs/UPNA/JdA/VELETA/robots/tmp/kobuki_ws/src/path_tracking/src/path_tracking/server.py)
+import std_msgs.msg
 import geometry_msgs
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
@@ -75,6 +76,13 @@ class Plc:
         # TODO: transform pose
 #        x, y, heading = 10, 11, 12  # robot pose in map coords (TODO)
         x, y, heading = pose
+        x = int(round(100 * x))
+        y = int(round(100 * y))
+        heading = int(round(100 * heading))
+        # TODO: remove this!!!!! (is a workaround to avoid negative values)
+        x = max(0, x)
+        y = max(0, y)
+        heading = max(0, heading)
 
         # asign plc registers from variables
         values = [w_l, w_r, x, y, heading, status, self._heartbeat()]
@@ -95,6 +103,8 @@ class Plc:
 
 
     def _heartbeat(self):
+        # TIP: The heartbeat allows the PLC see that the ROS node is alive
+
         if hasattr(self, '_heartbeat_last'):
             self._heartbeat_last = (self._heartbeat_last + 1) % 2
         else:
@@ -207,6 +217,12 @@ class TecnaTurtlePlcClient:
         tfbr = tf.TransformBroadcaster()
         self._tfbr = tfbr
 
+        # path_tracking interface
+        self._path_id_pub = rospy.Publisher("path_id", std_msgs.msg.Int32, queue_size=1)
+        with self._mutex:
+            self._path_tracking_status = 0
+        self._path_tracking_status_subs = rospy.Subscriber("path_tracking_status", std_msgs.msg.Int32, self._path_tracking_status_cb, queue_size=1)
+
         rospy.logdebug("TecnaTurtlePlcClient entering plc I/O loop ..")
         self._rate = rospy.Rate(rate)
         try:
@@ -220,6 +236,12 @@ class TecnaTurtlePlcClient:
         self._plc.close()  # closes modbus connection
 
         rospy.logwarn("TecnaTurtlePlcClient ended")
+
+
+    def _path_tracking_status_cb(self, msg):
+        # self._pub_ang_vel_1.publish(std_msgs.msg.Float32(angular_vel_1))
+        with self._mutex:
+            self._path_tracking_status = msg.data
 
 
     def _cmd_vel_cb(self, msg):
@@ -265,6 +287,16 @@ class TecnaTurtlePlcClient:
             data = read_from_plc()
             w_l, w_r, trajectory_id = data
 
+            def process_trajectory_request(trajectory_id):
+                # Create state variable on first execution
+                if hasattr(self, '_previous_trajectory_id') is False:
+                    self._previous_trajectory_id = 0
+
+                if trajectory_id != self._previous_trajectory_id:
+                    self._path_id_pub.publish(std_msgs.msg.Int32(trajectory_id))
+                    self._previous_trajectory_id = trajectory_id
+            process_trajectory_request(trajectory_id)
+
             def update_and_publish_odom():
                 v_l = w_l * self._wheel_radius
                 v_r = w_r * self._wheel_radius
@@ -282,7 +314,7 @@ class TecnaTurtlePlcClient:
                 with self._mutex:
                     w_l = self._w_l_cmd
                     w_r = self._w_r_cmd
-                status = 0  # TODO
+                    status = self._path_tracking_status
                 self._plc.write(w_l, w_r, pose, status)
             write_to_plc()
 
