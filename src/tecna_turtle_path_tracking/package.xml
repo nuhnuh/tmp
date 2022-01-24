@@ -1,0 +1,13 @@
+<package>
+  <name>tecna_turtle_path_tracking</name>
+  <version>0.0.0</version>
+  <description>
+    tecna_turtle_path_tracking is a workaround package for running the upnabot_path_tracking package on the tecna_turtle vehicle
+  </description>
+  <author>Manuel Prieto</author>
+  <maintainer email="manuel.prieto@unavarra.es">Manuel Prieto</maintainer>
+  <license>BSD</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rospy</build_depend>
+  <run_depend>rospy</run_depend>
+</package>
