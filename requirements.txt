@@ -1,0 +1,9 @@
+pytest
+jupyter
+
+numpy
+matplotlib
+pandas
+opencv-contrib-python
+scipy
+sympy

@@ -4,6 +4,9 @@ For example, by using a visual odometry source such as basalt (fast but with dif
 
 # Setup and run
 
+    # download dependencies
+
+    # gtsam
     cd 3rdparty
     git clone https://github.com/borglab/gtsam.git
     cd gtsam
@@ -11,23 +14,46 @@ For example, by using a visual odometry source such as basalt (fast but with dif
     git checkout 0f8353f7e
     cd ../../
 
+    # apriltag
+    cd 3rdparty
+    git clone https://github.com/AprilRobotics/apriltag apriltag3
+    cd apriltag3
+
+    # opengv
+    cd 3rdparty
+    git clone https://github.com/laurentkneip/opengv
+    cd opengv
+    git submodule init
+    git submodule update
+
+    # docker
+
     make docker_create_image
-    # create BUILD_DIR (TIP: if BUILD_DIR does not exist docker creates it with root as owner)
-    BUILD_DIR=~/tmp/VELETA/gtsam_sensor_fusion_snippet/build
-    mkdir -p ${BUILD_DIR}
-    #
-    make docker_run BUILD_DIR=${BUILD_DIR}
+    make docker_run
+    # TIP: tested on 04c4ec3
+    git checkout 04c4ec3
+    cd ../../
 
-    # (inside docker)
-    make build_gtsam
-    sudo make install_gtsam  # WARNING: creates files owned by root on BUILD_DIR
-    sudo make install_gtsam_python # WARNING: creates files owned by root on BUILD_DIR
-    make test_gtsam_python
+    # build (inside docker)
 
-    # (inside docker)
-    pip install jupyter
-    pip install matplotlib
+    make python_setup  # installs jupyter, etc.
+
+    # opengv
+    make opengv_build
+
+    # gtsam
+    make gtsam_build
+    make gtsam_python_test
+
+    # apriltag3
+    make apriltag3_build
+    make apriltag3_python_test
+
+    # run (inside docker)
     make run_jupyter
+
+
+
 
 
 TIP: save the docker image with gtsam and jupyter installed
@@ -35,5 +61,5 @@ TIP: save the docker image with gtsam and jupyter installed
     docker ps
     docker commit c6XXX jda/veleta/gtsam_sensor_fusion_snippet:ubuntu20
 
-    make docker_run BUILD_DIR=${BUILD_DIR}
+    make docker_run
     make run_jupyter

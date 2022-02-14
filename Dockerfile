@@ -1,6 +1,7 @@
 # Ubuntu 20
 
-FROM ubuntu:20.04
+#FROM ubuntu:20.04
+FROM nvidia/opengl:1.2-glvnd-runtime-ubuntu20.04
 
 ARG USER=ubuntu20
 ARG HOME=/home/${USER}
@@ -33,15 +34,43 @@ RUN apt update \
 RUN apt update \
     && DEBIAN_FRONTEND=noninteractive apt install -y \
       python3 \
-      python3-pip \
-      python-is-python3 \
+      python3-venv \
     && rm -rf /var/lib/apt/lists/*
-USER ${USER}
-RUN python -m pip install numpy
-RUN python -m pip install pyparsing
-#RUN python -m pip install jupyter
-#RUN python -m pip install matplotlib
-USER root
+# in ubuntu20: python-is-python3 \
+
+#USER ${USER}
+#RUN python3 -m pip install numpy
+#RUN python3 -m pip install pyparsing
+#RUN python3 -m pip install jupyter
+###RUN python3 -m pip install Pillow
+##RUN python3 -m pip install matplotlib
+##RUN python3 -m pip install scipy
+#USER root
+
+# apriltag3 dependencies
+RUN apt update \
+    && DEBIAN_FRONTEND=noninteractive apt install -y \
+      libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+## matplotlib under docker
+#RUN apt update \
+#    && DEBIAN_FRONTEND=noninteractive apt install -y \
+#      python3-tk \
+#    && rm -rf /var/lib/apt/lists/*
+
+# opengv dependencies
+RUN apt update \
+    && DEBIAN_FRONTEND=noninteractive apt install -y \
+      python3 \
+      python3-venv \
+      libeigen3-dev \
+      libboost-all-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+#USER ${USER}
+#RUN python3 -m pip install opencv-python
+#USER root
 
 #
 USER ${USER}
